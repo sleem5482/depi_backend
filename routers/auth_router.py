@@ -127,31 +127,31 @@ def get_me(token: str = Depends(oauth2_scheme), db: db_dependency = None):  # ty
 # ─────────────────────────────────────────────────────────
 @router.post(
     "/forgot-password",
-    summary="Request a password reset token",
+    summary="Check email and return reset token for frontend redirect",
 )
 def forgot_password(request: ForgotPasswordRequest, db: db_dependency):
+    # ── Check if the email is registered ─────────────────────────────────────
     user = db.query(User).filter(User.email == request.email).first()
 
-    # Always return success to prevent user enumeration attacks
     if not user:
-        return {
-            "message": "If this email is registered, a reset token has been sent.",
-            "reset_token": None,
-        }
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No account found with this email address.",
+        )
 
-    # Generate a secure random token
+    # ── Generate a secure random token (valid 30 minutes) ────────────────────
     reset_token = secrets.token_urlsafe(32)
-    expire = datetime.now(timezone.utc) + timedelta(minutes=30)  # valid for 30 minutes
+    expire = datetime.now(timezone.utc) + timedelta(minutes=30)
 
     user.reset_token = reset_token
     user.reset_token_expire = expire
     db.commit()
 
-    # In production: send this token via email.
-    # For now, we return it directly in the response for easy testing.
+    # ── Return token + email so the frontend can redirect to reset-password ───
     return {
-        "message": "Password reset token generated. In production this would be emailed.",
-        "reset_token": reset_token,  # ← Remove this in production!
+        "message": "Email verified. Use the token to reset your password.",
+        "email": user.email,
+        "reset_token": reset_token,
         "expires_in": "30 minutes",
     }
 

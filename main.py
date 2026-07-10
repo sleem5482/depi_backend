@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine
 from model import Base
 from routers.auth_router import router as auth_router
+from routers.predict_router import router as predict_router
 
 # ── Create all database tables ─────────────────────────────
 Base.metadata.create_all(bind=engine)
@@ -26,6 +27,7 @@ app.add_middleware(
 
 # ── Include routers ────────────────────────────────────────
 app.include_router(auth_router)
+app.include_router(predict_router)
 
 
 # ── Root health check ──────────────────────────────────────
